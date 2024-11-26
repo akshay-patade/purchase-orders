@@ -16,4 +16,5 @@ class Order(models.Model):
         max_length=10,
         choices=ProcessedStatus.choices,
         default=ProcessedStatus.PROCESSED
-    )   
+    )  
+ 
