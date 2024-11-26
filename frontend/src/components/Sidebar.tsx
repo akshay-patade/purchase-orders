@@ -42,6 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <ul className="space-y-3 mt-4">
+        <li className="hidden sm:block text-xl font-bold">Endeavor AI</li>
         {/* Supply Chain Section */}
         <li className="font-semibold text-gray-400">Supply Chain</li>
         <li

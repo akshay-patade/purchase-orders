@@ -1,20 +1,27 @@
 import React, { useEffect, useState } from "react";
 import Spinner from "./Spinner";
+import { ExtractPurchaseOrdersApiResponse } from "../schemas/ExtractPurchaseOrdersApiResponseSchema";
 
 interface ExtractPurchaseModalProps {
   file: File | null;
+  mappingsData: ExtractPurchaseOrdersApiResponse | null;
+  setMappingsData: React.Dispatch<
+    React.SetStateAction<ExtractPurchaseOrdersApiResponse | null>
+  >;
 }
 
 const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
   file,
+  mappingsData,
+  setMappingsData,
 }) => {
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchMappings = async () => {
       try {
-        //Check if the user has uploaded the file. If not, throw a 400 error code
+        // Check if the user has uploaded the file. If not, throw a 400 error code
         if (!file) {
           throw new Error("Please Upload a file first and then try again");
         }
@@ -33,8 +40,6 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
           }
         );
 
-        console.log(res);
-
         if (!res.ok) {
           throw new Error(
             "Failed to Get the Contents from the data. Please use some other File"
@@ -42,12 +47,10 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
         }
 
         const result = await res.json();
-        const finalData = JSON.stringify(result);
-        console.log(finalData);
-        setIsLoading(false);
+        const data = result["result_data"];
+        setMappingsData(data);
+        console.log(data);
       } catch (err) {
-        console.log("error");
-
         if (err instanceof Error) {
           setError(err.message); // Set the error state
         } else {
@@ -58,11 +61,15 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
       }
     };
 
-    fetchMappings();
-  }, []);
+    // Fetch mappings only if there is no data or it's null
+    if (!mappingsData || mappingsData.length === 0) {
+      setIsLoading(true);
+      fetchMappings();
+    }
+  }, [mappingsData, file]);
 
   return (
-    <div className="h-screen flex justify-center items-center bg-gray-100">
+    <div className="flex justify-center items-center">
       {isLoading ? (
         <Spinner size="large" color="text-red-500" />
       ) : !error ? (
