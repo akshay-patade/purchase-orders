@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import NewPurchaseOrder from "../components/NewPurchaseOrder";
+import NewPurchaseOrderModal from "../components/NewPurchaseOrderModal";
 
 const PurchaseOrder: React.FC = () => {
   const [isModalOpen, setModalOpen] = useState(false);
@@ -7,12 +7,12 @@ const PurchaseOrder: React.FC = () => {
   const closeModal = () => setModalOpen(false);
 
   return (
-    <div className="pt-1 ">
+    <div className="pt-1">
       <div className="flex justify-between pt-3">
         <h1 className="text-xl sm:text-3xl font-bold">Purchase Orders</h1>
 
         <button
-          className="bg-blue-500 text-white  rounded-md     py-2 px-4"
+          className="bg-blue-500 text-white  rounded-md py-2 px-4"
           onClick={openModal}
         >
           New Purchase Order
@@ -21,7 +21,7 @@ const PurchaseOrder: React.FC = () => {
       <hr className="border-t border-gray-300 my-2" />
 
       {/*Modal code*/}
-      <NewPurchaseOrder isOpen={isModalOpen} onClose={closeModal} />
+      <NewPurchaseOrderModal isOpen={isModalOpen} onClose={closeModal} />
     </div>
   );
 };
