@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import PurchaseOrder from "../pages/PurchaseOrder";
 
 // Define the type for menu options
 type MenuOption =
@@ -16,13 +17,13 @@ const Sidebar: React.FC = () => {
   // State to track the selected menu item
   const [selectedMenu, setSelectedMenu] =
     useState<MenuOption>("purchaseOrders");
-  const [isOpen, setIsOpen] = useState(true); // State for mobile sidebar toggle
+  const [isOpen, setIsOpen] = useState(false); // State for mobile sidebar toggle
 
   // Content for each menu item
   const renderContent = () => {
     switch (selectedMenu) {
       case "purchaseOrders":
-        return <div>Purchase Orders Content</div>;
+        return <PurchaseOrder />;
       case "asnAlerts":
         return <div>Customer Analytics Content</div>;
       case "performanceTracking":
@@ -40,12 +41,12 @@ const Sidebar: React.FC = () => {
       case "invoiceMatching":
         return <div>Invoice Matching Content</div>;
       default:
-        return <div>Purchase Orders Content</div>;
+        return <PurchaseOrder />;
     }
   };
 
   return (
-    <div className="flex">
+    <div className="flex w-full ">
       {/* Toggle Button for Mobile */}
       <button
         className="sm:hidden fixed top-4 left-4 z-50 p-2 bg-gray-200 rounded-md shadow-md focus:outline-none"
@@ -60,7 +61,7 @@ const Sidebar: React.FC = () => {
           isOpen ? "translate-x-0" : "-translate-x-full"
         } sm:translate-x-0 transition-transform duration-300 w-64 fixed sm:relative`}
       >
-        <h2 className={`text-xl font-bold mb-4 ${isOpen} ? "pl-20": pl-0`}>
+        <h2 className={`text-xl font-bold mb-4 ${isOpen ? "pl-12" : "pl-0"}`}>
           Endeavor AI
         </h2>
         <nav>
@@ -173,12 +174,11 @@ const Sidebar: React.FC = () => {
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 bg-white sm:ml-10 ${
-          isOpen ? "ml-60" : "ml-0"
-        } transition-all duration-300`}
+        className={`flex-1 bg-white  ${
+          isOpen ? "ml-60" : "ml-10"
+        } transition-all duration-300 `}
       >
         <div className="p-2">
-          <h1 className="text-2xl font-bold mb-4">Main Content Area</h1>
           <div className="text-gray-600">{renderContent()}</div>
         </div>
       </div>
