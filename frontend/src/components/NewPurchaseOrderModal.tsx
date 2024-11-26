@@ -2,6 +2,10 @@ import React, { useState, useRef } from "react";
 import UploadPurchaseModal from "./UploadPurchaseModal";
 import ExtractPurchaseModal from "./ExtractPurchaseModal";
 
+type ApiResponse = {
+  [key: string]: any; // For a generic response
+};
+
 interface NewPurchaseOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -14,6 +18,8 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
   const [activeTab, setActiveTab] = useState<string>("Upload");
   const [file, setFile] = useState<File | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [mappingsData, setMappingsData] = useState<ApiResponse | null>(null); // This State is used to store the mappings we get from the extraction api. In order to avoid mulitple api request
+
   const [currentView, setCurrentView] = useState<
     "Upload" | "Extract" | "Match"
   >("Upload");
@@ -50,20 +56,18 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
       case "Upload":
         return (
           <UploadPurchaseModal
-            file={file}
             clearFile={clearPreview}
             handleGenerateMappings={handleGenerateMappings}
           />
         );
       case "Extract":
-        return <ExtractPurchaseModal />;
+        return <ExtractPurchaseModal file={file} />;
       case "Match":
         return <div>Match Modal will be rendered</div>;
 
       default:
         return (
           <UploadPurchaseModal
-            file={file}
             clearFile={clearPreview}
             handleGenerateMappings={handleGenerateMappings}
           />

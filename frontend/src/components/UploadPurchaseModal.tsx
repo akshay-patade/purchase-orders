@@ -3,13 +3,11 @@ import React from "react";
 type MenuOption = "Upload" | "Extract" | "Match";
 
 interface UploadPurchaseModalProps {
-  file: File | null;
   clearFile: () => void;
   handleGenerateMappings: () => void;
 }
 
 const UploadPurchaseModal: React.FC<UploadPurchaseModalProps> = ({
-  file,
   clearFile,
   handleGenerateMappings,
 }) => {
