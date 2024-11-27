@@ -37,16 +37,12 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
       setFileUrl(null);
     }
     setFile(null); // Clear the file state
+    setMappingsData(null);
   };
 
   const handleGenerateMappings = () => {
     setActiveTab("Extract");
     setCurrentView("Extract");
-  };
-
-  const handleMatchData = () => {
-    setActiveTab("Match");
-    setCurrentView("Match");
   };
 
   const renderContent = () => {

@@ -2,11 +2,12 @@ import { z } from "zod";
 
 // Define the schema for a single purchase order
 export const ExtractPurchaseOrdersApiResponseSchema = z.object({
-  "QUANTITY COL": z.string().nullable().optional(), // string or null or undefined
-  PRICE: z.string().nullable().optional(),
-  "UNIT COL": z.string().nullable().optional(),
+  Quantity: z.string().nullable().optional(), // string or null or undefined
+  "Unit Price": z.string().nullable().optional(),
   TOTAL: z.string().nullable().optional(),
-  "REQUEST ITEM": z.string().nullable().optional(),
+  "Product Description": z.string().nullable().optional(),
+  "Item Number": z.string().nullable().optional(),
+  "Vendor Number": z.string().nullable().optional(),
 });
 
 // Define the schema for the array of purchase orders

@@ -17,4 +17,6 @@ class Order(models.Model):
         choices=ProcessedStatus.choices,
         default=ProcessedStatus.PROCESSED
     )  
+
+
  
