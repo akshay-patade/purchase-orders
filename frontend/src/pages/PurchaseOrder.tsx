@@ -9,10 +9,12 @@ const PurchaseOrder: React.FC = () => {
   return (
     <div className="pt-1">
       <div className="flex justify-between pt-3">
-        <h1 className="text-xl sm:text-3xl font-bold">Purchase Orders</h1>
+        <h1 className="text-xl sm:text-3xl font-bold text-white">
+          Purchase Orders
+        </h1>
 
         <button
-          className="bg-blue-500 text-white  rounded-md py-2 px-4"
+          className="bg-blue-500 hover:bg-blue-600 text-white  rounded-md py-2 px-4"
           onClick={openModal}
         >
           New Purchase Order

@@ -45,6 +45,12 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
     setCurrentView("Extract");
   };
 
+  const handleNewPurchaseModalClose = () => {
+    //Call the clearPreview resource to free the resouce and then call the Onclose function to close the modal
+    clearPreview();
+    onClose();
+  };
+
   const renderContent = () => {
     switch (currentView) {
       case "Upload":
@@ -77,27 +83,22 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
 
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Fullscreen Modal */}
-      <div className="bg-white w-full max-h-screen h-full min-h-screen flex flex-col">
+      <div className="bg-gray-800 w-full max-h-screen h-full min-h-screen flex flex-col">
         {/* Modal Header */}
-        <div className="flex justify-between items-center bg-gray-100 px-4 py-3 border-b">
-          <h2 className="text-lg font-semibold text-gray-800">Process Order</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-600 hover:text-gray-800 text-xl"
-          >
-            ✕
-          </button>
+        <div className="flex justify-between items-center text-white text-lg font-bold px-4 py-3 border-b">
+          <h2>Process Order</h2>
+          <button onClick={handleNewPurchaseModalClose}>X</button>
         </div>
         {/* Modal Body */}
         <div className="flex-grow p-6 overflow-y-auto sm:overflow-y-none h-full">
           <div className="grid  grid-cols-1 md:grid-cols-2 gap-4 h-full">
             {/* File Upload Section */}
-            <div className="h-full border-dashed border-2 border-gray-300 rounded-md  flex flex-col justify-center items-center text-gray-600">
+            <div className="h-full border-dashed border-2 border-gray-300 text-white rounded-md  flex flex-col justify-center items-center">
               <label
                 htmlFor="fileInput"
-                className="block mb-2 text-sm font-medium text-gray-700"
+                className="block mb-2 text-sm font-medium"
               >
                 Click to upload the file data.
               </label>
@@ -119,50 +120,50 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
                   />
                 </div>
               ) : (
-                <p className="text-gray-500">No document selected</p>
+                <p className="text-white">No document selected</p>
               )}
             </div>
 
             {/* Purchase Order Information Section */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-md font-large text-gray-400">
                   Request ID
                 </label>
                 <input
                   type="text"
                   value="1730261419548"
                   readOnly
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="mt-1 block w-full rounded-md  focus:ring-blue-500 focus:border-blue-500 sm:text-md"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-md font-medium text-gray-400">
                   Extract PO Date
                 </label>
                 <input
                   type="date"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="mt-1 block w-full rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-md"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-md font-medium text-gray-400">
                   Extract Delivery Address
                 </label>
                 <input
                   type="text"
                   placeholder="Address"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="mt-1 block w-full rounded-md  focus:ring-blue-500 focus:border-blue-500 sm:text-md"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-md font-medium text-gray-400">
                   Extract PO Number
                 </label>
                 <input
                   type="text"
                   placeholder="PO Number"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="mt-1 block w-full rounded-md  focus:ring-blue-500 focus:border-blue-500 sm:text-md"
                 />
               </div>
 
@@ -181,7 +182,7 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
                 ${
                   activeTab === "Upload"
                     ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-500 hover:text-blue-600"
+                    : "text-white hover:text-blue-600"
                 }
               `}
                     >
@@ -198,7 +199,7 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
                 ${
                   activeTab === "Extract"
                     ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-500 hover:text-blue-600"
+                    : "text-white hover:text-blue-600"
                 }
               `}
                     >
@@ -215,7 +216,7 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
                 ${
                   activeTab === "Match"
                     ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-500 hover:text-blue-600"
+                    : "text-white hover:text-blue-600"
                 }
               `}
                     >

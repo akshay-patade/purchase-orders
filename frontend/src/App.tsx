@@ -62,7 +62,7 @@ function App() {
         isSidebarVisible={isSidebarVisible}
       />
 
-      <div className="flex-1 p-3 sm:ml-64">{renderContent()}</div>
+      <div className="flex-1 p-3 sm:ml-64 bg-gray-900 ">{renderContent()}</div>
     </div>
   );
 }

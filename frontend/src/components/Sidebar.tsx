@@ -32,17 +32,19 @@ const Sidebar: React.FC<SidebarProps> = ({
       } transition-transform ease-out duration-300 sm:translate-x-0`}
     >
       <div className="flex items-center justify-between px-4 py-4 sm:hidden">
-        <h2 className="text-xl font-bold">Endeavor AI</h2>
+        <h2 className="text-xl font-bold ">Endeavor AI</h2>
         <button
           className="text-white bg-gray-600 rounded-md p-2 focus:outline-none"
           onClick={toggleSidebar}
         >
-          ✖
+          X
         </button>
       </div>
 
       <ul className="space-y-3 mt-4">
-        <li className="hidden sm:block text-xl font-bold">Endeavor AI</li>
+        <li className="hidden sm:block text-xl font-bold cursor-pointer">
+          Endeavor AI
+        </li>
         {/* Supply Chain Section */}
         <li className="font-semibold text-gray-400">Supply Chain</li>
         <li
@@ -50,7 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           className={`cursor-pointer ${
             selectedMenu === "purchaseOrders"
               ? "text-blue-500 font-bold"
-              : "hover:text-blue-500"
+              : "hover:text-blue-600"
           } pl-4`}
         >
           Purchase Orders
@@ -60,7 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           className={`cursor-pointer ${
             selectedMenu === "asnAlerts"
               ? "text-blue-500 font-bold"
-              : "hover:text-blue-500"
+              : "hover:text-blue-600"
           } pl-4`}
         >
           Customer Analytics
@@ -70,7 +72,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           className={`cursor-pointer ${
             selectedMenu === "performanceTracking"
               ? "text-blue-500 font-bold"
-              : "hover:text-blue-500"
+              : "hover:text-blue-600"
           } pl-4`}
         >
           Supplier Performance
@@ -85,7 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           className={`cursor-pointer ${
             selectedMenu === "materialTracking"
               ? "text-blue-500 font-bold"
-              : "hover:text-blue-500"
+              : "hover:text-blue-600"
           } pl-4`}
         >
           Inventory Coverage
@@ -95,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           className={`cursor-pointer ${
             selectedMenu === "costManagement"
               ? "text-blue-500 font-bold"
-              : "hover:text-blue-500"
+              : "hover:text-blue-600"
           } pl-4`}
         >
           In-Transit Inventory
@@ -105,7 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           className={`cursor-pointer ${
             selectedMenu === "performanceEvaluations"
               ? "text-blue-500 font-bold"
-              : "hover:text-blue-500"
+              : "hover:text-blue-600"
           } pl-4`}
         >
           Inventory Forecast
@@ -120,7 +122,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           className={`cursor-pointer ${
             selectedMenu === "purchasing"
               ? "text-blue-500 font-bold"
-              : "hover:text-blue-500"
+              : "hover:text-blue-600"
           } pl-4`}
         >
           Purchasing
@@ -130,7 +132,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           className={`cursor-pointer ${
             selectedMenu === "lineOfCredit"
               ? "text-blue-500 font-bold"
-              : "hover:text-blue-500"
+              : "hover:text-blue-600"
           } pl-4`}
         >
           Spend Intelligence
@@ -140,7 +142,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           className={`cursor-pointer ${
             selectedMenu === "invoiceMatching"
               ? "text-blue-500 font-bold"
-              : "hover:text-blue-500"
+              : "hover:text-blue-600"
           } pl-4`}
         >
           Invoice Matching

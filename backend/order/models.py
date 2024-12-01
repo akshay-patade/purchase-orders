@@ -18,5 +18,4 @@ class Order(models.Model):
         default=ProcessedStatus.PROCESSED
     )  
 
-
  
