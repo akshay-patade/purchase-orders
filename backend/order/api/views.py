@@ -1,8 +1,9 @@
 import json
 import os
 
-from drf_spectacular.utils import extend_schema, OpenApiExample
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter
 
+from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -115,3 +116,132 @@ class ProcessOrderView(APIView):
             "order_details": serialized_order_details.data
         }
         return Response(response_data, status=status.HTTP_201_CREATED)
+
+class OrderDetailsByOrderId(APIView):
+
+    @extend_schema(
+        operation_id='get_order_details_by_id',
+        summary="Get Order Details by id",
+        description=(
+            "This endpoint allows users to get order details by id "
+            "Return the order details if we found the record "
+            "Raise a 404 if order details are not found."
+        ),
+
+
+        parameters=[
+            OpenApiParameter(
+                name='order_id', 
+                description='Search the order by its id', 
+                type=str,
+                location=OpenApiParameter.QUERY,
+                required=True
+            ),
+        ],
+
+        request={
+                'application/json': {
+                    'type': 'object',
+                    'properties': {
+                        'order_id': {
+                            'type': 'int', 
+                        }
+                    }
+                }
+            },
+        responses={
+            200: {
+                'type': 'object', 
+                'properties': {
+                    'message': {'type': 'string'}, 
+                    'queries': {'type': 'array', 'items': {'type': 'object'}}
+                }
+            },
+            400: {
+                'type': 'object', 
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            },
+        }
+    )
+
+
+    def get(self, request):
+        order_id = request.query_params.get('order_id')
+        if not order_id:
+            return Response(
+                {"error": "order_id query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        order_details = OrderDetails.objects.filter(order_id=order_id)
+        if not order_details.exists():
+            return Response(
+                {"message": "No order details found for the given order_id."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = OrderDetailsSerializer(order_details, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AddOrUpdateOrderDetails(APIView):
+    def post(self, request):
+        # Add a new order detail
+        serializer = OrderDetailsSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, pk):
+        # Update an existing order detail
+        try:
+            order_detail = OrderDetails.objects.get(pk=pk)
+        except OrderDetails.DoesNotExist:
+            return Response(
+                {"error": "Order detail not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = OrderDetailsSerializer(order_detail, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk):
+        # Partially update an existing order detail
+        try:
+            order_detail = OrderDetails.objects.get(pk=pk)
+        except OrderDetails.DoesNotExist:
+            return Response(
+                {"error": "Order detail not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = OrderDetailsSerializer(order_detail, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class DeleteOrderDetails(APIView):
+
+    def delete(self, request, pk):
+        try:
+            order_detail = OrderDetails.objects.get(pk=pk)
+        except OrderDetails.DoesNotExist:
+            return Response(
+                {"error": "Order detail not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        order_detail.delete()
+        return Response(
+            {"message": "Order detail deleted successfully."},
+            status=status.HTTP_200_OK
+        )
