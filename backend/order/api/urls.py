@@ -1,7 +1,7 @@
 
 from django.urls import path
-from .views import ExtractMappingView
+from .views import ProcessOrderView
 
 urlpatterns = [
-    path('extractMappings/', ExtractMappingView.as_view(), name="extract_mappings"),
+    path('extractOrderDetails/', ProcessOrderView.as_view(), name="extract_order_details"),
 ]

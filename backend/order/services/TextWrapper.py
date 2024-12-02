@@ -9,6 +9,7 @@ class TextWrapper:
         self.document_path = document_path
     
     def extract_product_table(self):
+
         with open(self.document_path, 'rb') as file:
             # Call Textract
             response = self.client.analyze_document(
@@ -16,6 +17,7 @@ class TextWrapper:
                 FeatureTypes=['TABLES']
             )
         
+
         # Map Block Ids
         blocks = {block['Id']: block for block in response['Blocks']}
 

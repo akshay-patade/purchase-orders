@@ -42,25 +42,26 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
     };
     // Safely update the field
     updatedMappings[index][field] =
-      field === "Quantity" || field === "Unit Price"
+      field === "quantity" || field === "unit_price"
         ? parseFloat(value as string).toString()
         : (value as string);
 
     // Calculate and update the TOTAL field
-    const quantity = parseFloat(updatedMappings[index]["Quantity"] || "0");
-    const unitPrice = parseFloat(updatedMappings[index]["Unit Price"] || "0");
-    updatedMappings[index]["TOTAL"] = (quantity * unitPrice).toString();
+    const quantity = parseFloat(updatedMappings[index]["quantity"] || "0");
+    const unitPrice = parseFloat(updatedMappings[index]["unit_price"] || "0");
+    updatedMappings[index]["total"] = (quantity * unitPrice).toString();
 
     setMappingsData(updatedMappings);
   };
 
   const handleAddRow = () => {
     const newRow: ExtractPurchaseOrders = {
-      "Product Description": "",
-      Quantity: "0",
-      "Unit Price": "0",
-      TOTAL: "0",
-      "Vendor Number": "",
+      product_description: "",
+      quantity: "0",
+      unit_price: "0",
+      total: "0",
+      vendor_number: "",
+      item_number: "",
     };
 
     if (mappingsData) setMappingsData([...mappingsData, newRow]);
@@ -113,12 +114,12 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
                       - If any field does not have a value or cannot be calculated, leave it blank.
                        - Return the output in the specified JSON format only, without additional explanations.
                         - Follow the schema definition below: Schema Fields:
-                    1. **Product Description**: A description of the product or service.
-                    2. **Quantity**: The number of units of the product. If there are any characters or special characters in these fields, please  remove it and give me only the numeric data 
-                    3. **Unit Price**: The price per unit of the product.Don't try to leave it blank assuming they will be calculated or provided from an external source. if the data is present then insert it else blank 
-                    4. **Total**: The total price of the product (calculated as Quantity multiplied by Unit Price). Don't try to leave it blank assuming they will be calculated or provided from an external source. if the data is present then insert it else blank  
-                    5. **Item Number**: A unique code identifying the product, not its description. The item number is not the product description. It will generally be a numeric or a short varchar field
-                    6. **Manufacturer Code**: A code provided by the manufacturer or vendor.It will generally be a numeric or a short varchar field`,
+                    1. **product_description**: A description of the product or service. If the data is not present, then insert "N/A"
+                    2. **item_number**: A unique code for identifying the product. Note: It is not description. The item number is not the product_description. It will generally be a numeric or a short varchar field. If the data is not present, then insert "N/A"
+                    3. **vendor_number**: A code provided by the manufacturer or vendor.It will generally be a numeric or a short varchar field. If the data is not present, then insert "N/A"
+                    4. **Quantity**: The number of units of the product. If there are any characters or special characters in these fields, please  remove it and give me only the numeric data . If the data is not present then insert 0
+                    5. **Unit Price**: The price per unit of the product.Don't try to leave it blank assuming they will be calculated or provided from an external source. if the data is present then insert 0 
+                    6. **Total**: The total price of the product (calculated as Quantity multiplied by Unit Price). Don't try to leave it blank assuming they will be calculated or provided from an external source. if the data is present then insert 0`,
         },
         {
           role: "user",
@@ -196,7 +197,7 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
                   <tr>
                     <th className="border px-4 py-2 text-left">Item Number</th>
                     <th className="border px-4 py-2 text-left">
-                      Product Description
+                      product_description
                     </th>
                     <th className="border px-4 py-2 text-left">Quantity</th>
                     <th className="border px-4 py-2 text-left">Unit Price</th>
@@ -214,11 +215,11 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
                       <td className="border px-4 py-2">
                         <input
                           type="text"
-                          value={product["Product Description"] || ""}
+                          value={product["product_description"] || ""}
                           onChange={(e) =>
                             handleChange(
                               index,
-                              "Product Description",
+                              "product_description",
                               e.target.value
                             )
                           }
@@ -228,9 +229,9 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
                       <td className="border px-4 py-2">
                         <input
                           type="number"
-                          value={product["Quantity"] || ""}
+                          value={product["quantity"] || ""}
                           onChange={(e) =>
-                            handleChange(index, "Quantity", e.target.value)
+                            handleChange(index, "quantity", e.target.value)
                           }
                           className="w-full px-2 py-1 border rounded"
                         />
@@ -238,22 +239,22 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
                       <td className="border px-4 py-2">
                         <input
                           type="number"
-                          value={product["Unit Price"] || ""}
+                          value={product["unit_price"] || ""}
                           onChange={(e) =>
-                            handleChange(index, "Unit Price", e.target.value)
+                            handleChange(index, "unit_price", e.target.value)
                           }
                           className="w-full px-2 py-1 border rounded"
                         />
                       </td>
                       <td className="border px-4 py-2">
-                        {parseFloat(product["TOTAL"] || "0").toFixed(2)}
+                        {parseFloat(product["total"] || "0").toFixed(2)}
                       </td>
                       <td className="border px-4 py-2">
                         <input
                           type="text"
-                          value={product["Vendor Number"] || ""}
+                          value={product["vendor_number"] || ""}
                           onChange={(e) =>
-                            handleChange(index, "Vendor Number", e.target.value)
+                            handleChange(index, "vendor_number", e.target.value)
                           }
                           className="w-full px-2 py-1 border rounded"
                         />
