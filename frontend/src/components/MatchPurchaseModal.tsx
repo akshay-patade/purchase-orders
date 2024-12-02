@@ -8,18 +8,21 @@ import {
 
 interface MatchPurchaseModalProps {
   mappingsData: ExtractPurchaseOrdersApiResponse | null;
+  setMappingsData: React.Dispatch<
+    React.SetStateAction<ExtractPurchaseOrdersApiResponse | null>
+  >;
 }
 
 const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
   mappingsData,
+  setMappingsData,
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [matchingResponse, setMatchingResponse] = useState(null);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [editData, setEditData] = useState<ExtractPurchaseOrders | null>(null);
-  const [orderDetails, setOrderDetails] = useState(null);
+  const [tableError, setTableError] = useState<string | null>(null);
 
   const handleEdit = (data: ExtractPurchaseOrders, index: number) => {
     setError(null);
@@ -31,81 +34,23 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
     const fetchbestMappings = async () => {
       try {
         setIsLoading(true);
-        if (mappingsData && mappingsData?.length > 0) {
-          const productDescriptions = mappingsData.map(
-            (item) => item.product_description
+
+        if (!mappingsData || mappingsData.length === 0)
+          throw new Error(
+            "Failed to find the matching. There should be atleast one data inorder to perform matching. Please upload the document and try again"
           );
-
-          const res = await fetch(
-            `${process.env.REACT_APP_BACKEND_URL}/api/product/productMatching/`,
-            {
-              method: "POST",
-              headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ queries: productDescriptions }),
-            }
-          );
-
-          if (!res.ok) {
-            throw new Error(
-              "Failed to find the matching. There should be atleast one data inorder to perform matching"
-            );
-          }
-
-          const result = await res.json();
-          const temp = result["queries"];
-
-          //This query is executed to update the best match for every order detail
-          setMatchingResponse(temp);
-
-          if (temp) {
-            const apiCalls = mappingsData.map((data, index) => {
-              console.log("Printing the order id");
-              console.log(data["id"]);
-              const body = {
-                id: data.id,
-                best_match: temp[index]["matches"][0]["description"],
-              };
-
-              return fetch(
-                `${process.env.REACT_APP_BACKEND_URL}/api/order/order-details/${data["id"]}/`,
-                {
-                  method: "PATCH",
-                  headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(body),
-                }
-              );
-            });
-
-            await Promise.all(apiCalls);
-          }
-
-          console.log(temp);
-        } else {
-          setError(
-            "Please Upload the Document First, extract the document and then try the matching process"
-          );
-        }
       } catch (err) {
+        if (err instanceof Error) {
+          setTableError(err.message);
+        } else {
+          console.error("An unexpected error occurred");
+        }
       } finally {
-        setIsLoading(false);
         setIsLoading(false);
       }
     };
 
-    if (mappingsData && mappingsData.length > 0) {
-      setIsLoading(true);
-      fetchbestMappings();
-    } else {
-      setError(
-        "Please Upload the Document First, extract the document and then try the matching process"
-      );
-    }
+    fetchbestMappings();
   }, []);
 
   return (
@@ -119,7 +64,7 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
       ) : (
         <div className="p-4 w-full">
           <div className="overflow-x-auto">
-            {mappingsData && matchingResponse && mappingsData.length > 0 && (
+            {mappingsData && mappingsData.length > 0 && (
               <table className="min-w-full border-collapse border border-gray-300 text-sm md:text-base">
                 <thead className="bg-gray-100">
                   <tr>
@@ -145,7 +90,7 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
                         {product["product_description"]}
                       </td>
                       <td className="border px-4 py-2">
-                        {matchingResponse[index]["matches"][0]["description"]}
+                        {product["best_match"]}
                       </td>
                       <td className="border px-4 py-2">
                         {product["quantity"]}
@@ -197,16 +142,30 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium"></label>
+                <label className="block text-sm font-medium">Best Match</label>
                 <input
                   type="text"
-                  value={editData.product_description || ""}
+                  value={editData.best_match || ""}
+                  readOnly
+                  className="w-full px-3 py-2 border rounded"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">
+                  Can't find what you are looking for? Select from out top 10
+                  best Matches
+                </label>
+                <input
+                  type="text"
+                  value={editData.best_match || ""}
                   onChange={(e) =>
                     setEditData({
                       ...editData,
-                      product_description: e.target.value,
+                      best_match: e.target.value,
                     })
                   }
+                  readOnly
                   className="w-full px-3 py-2 border rounded"
                 />
               </div>

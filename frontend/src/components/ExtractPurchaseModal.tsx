@@ -16,6 +16,8 @@ interface ExtractPurchaseModalProps {
   setOrderId: React.Dispatch<React.SetStateAction<string>>;
   uploadedAt: string;
   setUploadedAt: React.Dispatch<React.SetStateAction<string>>;
+  orderProcessStatus: string;
+  setOrderProcessStatus: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
@@ -27,6 +29,8 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
   setOrderId,
   uploadedAt,
   setUploadedAt,
+  orderProcessStatus,
+  setOrderProcessStatus,
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -185,10 +189,14 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
         const result = await res.json();
         const data = result["order_details"];
 
+        const order_process_status = result["process_status"];
+        setOrderProcessStatus(order_process_status);
+
+        console.log(data);
+
         const date = result["created_at"];
 
         const first_data = data[0];
-        console.log(first_data);
 
         setOrderId(first_data["order_id"]);
         setUploadedAt(date);

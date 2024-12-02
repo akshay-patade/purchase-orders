@@ -126,6 +126,7 @@ class ProcessOrderView(APIView):
         response_data = {
             "order_id": order.id,
             "created_at": order.uploaded_at,
+            "process_status": order.process_status,
             "order_details": serialized_order_details.data
         }
         return Response(response_data, status=status.HTTP_201_CREATED)

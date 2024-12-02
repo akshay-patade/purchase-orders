@@ -25,6 +25,8 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
 
   const [orderId, setOrderId] = useState<string>("");
   const [uploadedAt, setUploadedAt] = useState<string>(formattedDate);
+  const [orderProcessStatus, setOrderProcessStatus] =
+    useState<string>("Processed");
 
   const [currentView, setCurrentView] = useState<
     "Upload" | "Extract" | "Match"
@@ -84,10 +86,17 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
             setOrderId={setOrderId}
             uploadedAt={uploadedAt}
             setUploadedAt={setUploadedAt}
+            orderProcessStatus={orderProcessStatus}
+            setOrderProcessStatus={setOrderProcessStatus}
           />
         );
       case "Match":
-        return <MatchPurchaseModal mappingsData={mappingsData} />;
+        return (
+          <MatchPurchaseModal
+            mappingsData={mappingsData}
+            setMappingsData={setMappingsData}
+          />
+        );
 
       default:
         return (
@@ -163,6 +172,18 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
                 <input
                   type="date"
                   value={uploadedAt}
+                  className="mt-1 block w-full rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-md"
+                  readOnly
+                />
+              </div>
+
+              <div>
+                <label className="block text-md font-medium text-gray-400">
+                  Order Processed Status
+                </label>
+                <input
+                  type="text"
+                  value={orderProcessStatus}
                   className="mt-1 block w-full rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-md"
                   readOnly
                 />
