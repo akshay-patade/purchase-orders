@@ -1,214 +1,112 @@
 import React, { useEffect, useState } from "react";
 import Spinner from "./Spinner";
+
 import {
   ExtractPurchaseOrdersApiResponse,
   ExtractPurchaseOrders,
 } from "../schemas/ExtractPurchaseOrdersApiResponseSchema";
 
-interface ExtractPurchaseModalProps {
-  file: File | null;
+interface MatchPurchaseModalProps {
   mappingsData: ExtractPurchaseOrdersApiResponse | null;
-  setMappingsData: React.Dispatch<
-    React.SetStateAction<ExtractPurchaseOrdersApiResponse | null>
-  >;
-  handleFindBestMatch: () => void;
-  orderId: string;
-  setOrderId: React.Dispatch<React.SetStateAction<string>>;
-  uploadedAt: string;
-  setUploadedAt: React.Dispatch<React.SetStateAction<string>>;
 }
 
-const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
-  file,
+const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
   mappingsData,
-  setMappingsData,
-  handleFindBestMatch,
-  orderId,
-  setOrderId,
-  uploadedAt,
-  setUploadedAt,
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [matchingResponse, setMatchingResponse] = useState(null);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [editData, setEditData] = useState<ExtractPurchaseOrders | null>(null);
+  const [orderDetails, setOrderDetails] = useState(null);
 
-  const [tableError, setTableError] = useState<string | null>(null);
-
-  const handleAddRow = () => {
-    const newRow: ExtractPurchaseOrders = {
-      product_description: "N/A",
-      quantity: "0",
-      unit_price: "0.0",
-      total: "0.0",
-      vendor_number: "N/A",
-      item_number: "N/A",
-    };
-
-    setEditData(newRow);
-    setTableError(null);
-    setError(null);
-
-    setShowModal(true); // Open modal for new row
-  };
-
-  const handleDelete = async (order_detail_key: string, index: number) => {
-    setTableError(null);
-    setError(null);
-    if (mappingsData && order_detail_key.length > 0) {
-      try {
-        const res = await fetch(
-          `${process.env.REACT_APP_BACKEND_URL}/api/order/order-details/delete/${order_detail_key}/`,
-          {
-            method: "DELETE",
-            headers: {
-              Accept: "application/json",
-            },
-          }
-        );
-
-        if (!res.ok) {
-          throw new Error("Failed to Delete the order detal. Please try again");
-        }
-
-        const updatedData = mappingsData.filter((_, i) => i !== index);
-        setMappingsData(updatedData);
-      } catch (err) {
-        if (err instanceof Error) {
-          setTableError(err.message);
-        } else {
-          console.error("An unexpected error occurred");
-        }
-      }
-    }
-  };
-
-  const handleEdit = (data: ExtractPurchaseOrders) => {
-    setTableError(null);
+  const handleEdit = (data: ExtractPurchaseOrders, index: number) => {
     setError(null);
     setEditData(data);
     setShowModal(true);
   };
 
-  const handleModalSave = async () => {
-    try {
-      setTableError(null);
-      setError(null);
-      if (editData) {
-        if (editData.id) {
-          // Editing existing row
-          const id = editData["id"] || "1";
-          const res = await fetch(
-            `${process.env.REACT_APP_BACKEND_URL}/api/order/order-details/${id}/`,
-            {
-              method: "PUT",
-              headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(editData),
-            }
+  useEffect(() => {
+    const fetchbestMappings = async () => {
+      try {
+        setIsLoading(true);
+        if (mappingsData && mappingsData?.length > 0) {
+          const productDescriptions = mappingsData.map(
+            (item) => item.product_description
           );
 
-          if (!res.ok) {
-            throw new Error("Failed to Update the existing row");
-          }
-
-          const updatedMappings = mappingsData?.map((item) =>
-            item.item_number === editData.item_number ? editData : item
-          );
-          setMappingsData(updatedMappings || null);
-        } else {
-          // Adding new row
-
-          const temp = editData;
-          temp["order_id"] = orderId;
-
           const res = await fetch(
-            `${process.env.REACT_APP_BACKEND_URL}/api/order/order-details/`,
+            `${process.env.REACT_APP_BACKEND_URL}/api/product/productMatching/`,
             {
               method: "POST",
               headers: {
                 Accept: "application/json",
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify(temp),
+              body: JSON.stringify({ queries: productDescriptions }),
             }
           );
 
           if (!res.ok) {
-            throw new Error("Failed to Add a new row. Please try again later ");
+            throw new Error(
+              "Failed to find the matching. There should be atleast one data inorder to perform matching"
+            );
           }
-          setMappingsData([...(mappingsData || []), editData]);
-        }
-      }
-    } catch (err) {
-      if (err instanceof Error) {
-        setTableError(err.message);
-      } else {
-        console.error("An unexpected error occurred");
-      }
-    } finally {
-      setShowModal(false);
-    }
-  };
 
-  useEffect(() => {
-    const fetchMappings = async () => {
-      try {
-        setTableError(null);
-        setError(null);
-        if (!file) {
-          throw new Error("Please Upload a file first and then try again");
-        }
+          const result = await res.json();
+          const temp = result["queries"];
 
-        const formData = new FormData();
-        formData.append("file", file);
+          //This query is executed to update the best match for every order detail
+          setMatchingResponse(temp);
 
-        const res = await fetch(
-          `${process.env.REACT_APP_BACKEND_URL}/api/order/extractOrderDetails/`,
-          {
-            method: "POST",
-            headers: {
-              Accept: "application/json",
-            },
-            body: formData,
+          if (temp) {
+            const apiCalls = mappingsData.map((data, index) => {
+              console.log("Printing the order id");
+              console.log(data["id"]);
+              const body = {
+                id: data.id,
+                best_match: temp[index]["matches"][0]["description"],
+              };
+
+              return fetch(
+                `${process.env.REACT_APP_BACKEND_URL}/api/order/order-details/${data["id"]}/`,
+                {
+                  method: "PATCH",
+                  headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(body),
+                }
+              );
+            });
+
+            await Promise.all(apiCalls);
           }
-        );
 
-        if (!res.ok) {
-          throw new Error(
-            "Failed to Get the Contents from the data. Please use some other File"
+          console.log(temp);
+        } else {
+          setError(
+            "Please Upload the Document First, extract the document and then try the matching process"
           );
         }
-
-        const result = await res.json();
-        const data = result["order_details"];
-
-        const date = result["created_at"];
-
-        const first_data = data[0];
-        console.log(first_data);
-
-        setOrderId(first_data["order_id"]);
-        setUploadedAt(date);
-        setMappingsData(data);
       } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          console.error("An unexpected error occurred");
-        }
       } finally {
+        setIsLoading(false);
         setIsLoading(false);
       }
     };
 
-    if (!mappingsData || mappingsData.length === 0) {
+    if (mappingsData && mappingsData.length > 0) {
       setIsLoading(true);
-      fetchMappings();
+      fetchbestMappings();
+    } else {
+      setError(
+        "Please Upload the Document First, extract the document and then try the matching process"
+      );
     }
-  }, [file]);
+  }, []);
 
   return (
     <div className="flex justify-center items-center">
@@ -221,7 +119,7 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
       ) : (
         <div className="p-4 w-full">
           <div className="overflow-x-auto">
-            {mappingsData && mappingsData.length > 0 && (
+            {mappingsData && matchingResponse && mappingsData.length > 0 && (
               <table className="min-w-full border-collapse border border-gray-300 text-sm md:text-base">
                 <thead className="bg-gray-100">
                   <tr>
@@ -229,14 +127,14 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
                     <th className="border px-4 py-2 text-left">
                       Product Description
                     </th>
+                    <th className="border px-4 py-2 text-left">Best Match</th>
                     <th className="border px-4 py-2 text-left">Quantity</th>
                     <th className="border px-4 py-2 text-left">Unit Price</th>
                     <th className="border px-4 py-2 text-left">Total</th>
                     <th className="border px-4 py-2 text-left">
                       Vendor Number
                     </th>
-                    <th className="border px-4 py-2 text-left">Edit</th>
-                    <th className="border px-4 py-2 text-left">Delete</th>
+                    <th className="border px-4 py-2 text-left">Edit Product</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -245,6 +143,9 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
                       <td className="border px-4 py-2">{index + 1}</td>
                       <td className="border px-4 py-2">
                         {product["product_description"]}
+                      </td>
+                      <td className="border px-4 py-2">
+                        {matchingResponse[index]["matches"][0]["description"]}
                       </td>
                       <td className="border px-4 py-2">
                         {product["quantity"]}
@@ -260,48 +161,16 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
                       </td>
                       <td className="border px-4 py-2 text-center">
                         <button
-                          onClick={() => handleEdit(product)}
+                          onClick={() => handleEdit(product, index)}
                           className="text-blue-500 hover:text-blue-700"
                         >
                           Edit
-                        </button>
-                      </td>
-                      <td className="border px-4 py-2 text-center">
-                        <button
-                          onClick={() =>
-                            handleDelete(product["id"] || "", index)
-                          }
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          X
                         </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            )}
-
-            <div className="flex justify-center gap-2 mt-4">
-              <button
-                onClick={handleAddRow}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-700"
-              >
-                Add Row
-              </button>
-
-              <button
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
-                onClick={handleFindBestMatch}
-              >
-                Find Best Match
-              </button>
-            </div>
-
-            {tableError && (
-              <div className="bg-red-500 text-white p-4 rounded-md shadow-md">
-                <p>{tableError}</p>
-              </div>
             )}
           </div>
         </div>
@@ -314,6 +183,21 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
             <form className="space-y-4">
               <div>
                 <label className="block text-sm font-medium">Description</label>
+                <input
+                  type="text"
+                  value={editData.product_description || ""}
+                  onChange={(e) =>
+                    setEditData({
+                      ...editData,
+                      product_description: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border rounded"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium"></label>
                 <input
                   type="text"
                   value={editData.product_description || ""}
@@ -384,7 +268,7 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={handleModalSave}
+                  // onClick={handleModalSave}
                   className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
                 >
                   Save
@@ -398,4 +282,4 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
   );
 };
 
-export default ExtractPurchaseModal;
+export default MatchPurchaseModal;

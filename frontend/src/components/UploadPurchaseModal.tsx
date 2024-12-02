@@ -1,7 +1,5 @@
 import React from "react";
 
-type MenuOption = "Upload" | "Extract" | "Match";
-
 interface UploadPurchaseModalProps {
   clearFile: () => void;
   handleGenerateMappings: () => void;

@@ -1,26 +1,30 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import UploadPurchaseModal from "./UploadPurchaseModal";
 import ExtractPurchaseModal from "./ExtractPurchaseModal";
+import MatchPurchaseModal from "./MatchPurchaseModal";
+import { getFormattedDate } from "../helpers";
+
 import { ExtractPurchaseOrdersApiResponse } from "../schemas/ExtractPurchaseOrdersApiResponseSchema";
 
 interface NewPurchaseOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  order_id?: number;
-  order_process_date?: string;
 }
 
 const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
   isOpen,
   onClose,
-  order_id,
-  order_process_date,
 }) => {
+  const formattedDate = getFormattedDate();
+
   const [activeTab, setActiveTab] = useState<string>("Upload");
   const [file, setFile] = useState<File | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [mappingsData, setMappingsData] =
     useState<ExtractPurchaseOrdersApiResponse | null>(null); // This State is used to store the mappings we get from the extraction api. In order to avoid mulitple api request
+
+  const [orderId, setOrderId] = useState<string>("");
+  const [uploadedAt, setUploadedAt] = useState<string>(formattedDate);
 
   const [currentView, setCurrentView] = useState<
     "Upload" | "Extract" | "Match"
@@ -49,6 +53,11 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
     setCurrentView("Extract");
   };
 
+  const handleFindBestMatch = () => {
+    setActiveTab("Match");
+    setCurrentView("Match");
+  };
+
   const handleNewPurchaseModalClose = () => {
     //Call the clearPreview resource to free the resouce and then call the Onclose function to close the modal
     clearPreview();
@@ -70,10 +79,15 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
             file={file}
             mappingsData={mappingsData}
             setMappingsData={setMappingsData}
+            handleFindBestMatch={handleFindBestMatch}
+            orderId={orderId}
+            setOrderId={setOrderId}
+            uploadedAt={uploadedAt}
+            setUploadedAt={setUploadedAt}
           />
         );
       case "Match":
-        return <div>Match Modal will be rendered</div>;
+        return <MatchPurchaseModal mappingsData={mappingsData} />;
 
       default:
         return (
@@ -136,23 +150,23 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={order_id || ""}
+                  value={orderId || ""}
                   readOnly
                   className="mt-1 block w-full rounded-md  focus:ring-blue-500 focus:border-blue-500 sm:text-md"
                 />
               </div>
-              {order_process_date && (
-                <div>
-                  <label className="block text-md font-medium text-gray-400">
-                    Order Processed Date
-                  </label>
-                  <input
-                    type="date"
-                    value={order_process_date}
-                    className="mt-1 block w-full rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-md"
-                  />
-                </div>
-              )}
+
+              <div>
+                <label className="block text-md font-medium text-gray-400">
+                  Order Processed Date
+                </label>
+                <input
+                  type="date"
+                  value={uploadedAt}
+                  className="mt-1 block w-full rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-md"
+                  readOnly
+                />
+              </div>
 
               {/* Navigation bar for Upload, Extract and Match */}
 

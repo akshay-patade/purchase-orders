@@ -2,7 +2,6 @@ import json
 import os
 
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter
-
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -11,6 +10,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
+from product.services.ElasticSearchWrapper import ElasticSearchWrapper
 from order.models import Order, OrderDetails
 from order.services.TextWrapper import TextWrapper
 from order.services.GroqWrapper import GroqWrapper
@@ -95,17 +95,29 @@ class ProcessOrderView(APIView):
         response_text = groq_wrapper.extractOrderDetails(clean_product_table)
         order_details_data = json.loads(response_text)
 
+        elastic_search_wrapper = ElasticSearchWrapper()
+
+        queries = []
+        for detail in order_details_data:
+            queries.append(detail.get("product_description"))
+        
+        bestMatchResults = elastic_search_wrapper.getProductMatchings(queries)
+        
+        pointer = 0
         # Create new order details
         for detail in order_details_data:
+            bestResult = bestMatchResults[pointer]["matches"][0]["description"]
             OrderDetails.objects.create(
                 order_id=order,
                 product_description=detail.get("product_description"),
+                best_match = bestResult,
                 item_number=detail.get("item_number"),
                 vendor_number=detail.get("vendor_number"),
                 quantity=detail.get("quantity"),
                 unit_price=detail.get("unit_price"),
                 total=detail.get("total"),
             )
+            pointer += 1
 
         # Serialize the order details for response
         serialized_order_details = OrderDetailsSerializer(order.order_details.all(), many=True)
@@ -113,6 +125,7 @@ class ProcessOrderView(APIView):
         # Return the response including the order_id
         response_data = {
             "order_id": order.id,
+            "created_at": order.uploaded_at,
             "order_details": serialized_order_details.data
         }
         return Response(response_data, status=status.HTTP_201_CREATED)
@@ -189,7 +202,22 @@ class OrderDetailsByOrderId(APIView):
 class AddOrUpdateOrderDetails(APIView):
     def post(self, request):
         # Add a new order detail
+        
+        order_id = request.data.get('order_id')
+        if not order_id:
+            return Response({"error": "Order ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order = get_object_or_404(Order, pk=order_id)
+
+        if order.process_status == Order.ProcessedStatus.FINAL:
+            return Response(
+                {"error": "The order is set to 'Final' and cannot be updated."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         serializer = OrderDetailsSerializer(data=request.data)
+
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -198,7 +226,20 @@ class AddOrUpdateOrderDetails(APIView):
     def put(self, request, pk):
         # Update an existing order detail
         try:
+            order_id = request.data.get('order_id')
+            if not order_id:
+                return Response({"error": "Order ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            order = get_object_or_404(Order, pk=order_id)
+
+            if order.process_status == Order.ProcessedStatus.FINAL:
+                return Response(
+                    {"error": "The order is set to 'Final' and cannot be updated."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
             order_detail = OrderDetails.objects.get(pk=pk)
+
         except OrderDetails.DoesNotExist:
             return Response(
                 {"error": "Order detail not found."},
@@ -234,6 +275,14 @@ class DeleteOrderDetails(APIView):
     def delete(self, request, pk):
         try:
             order_detail = OrderDetails.objects.get(pk=pk)
+            order = get_object_or_404(Order, pk=order_detail.order_id.id)
+
+            if order.process_status == Order.ProcessedStatus.FINAL:
+                return Response(
+                    {"error": "The order is set to 'Final' and cannot be updated."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         except OrderDetails.DoesNotExist:
             return Response(
                 {"error": "Order detail not found."},

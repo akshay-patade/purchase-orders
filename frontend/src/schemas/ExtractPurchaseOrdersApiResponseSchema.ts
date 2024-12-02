@@ -4,6 +4,7 @@ import { z } from "zod";
 export const ExtractPurchaseOrdersApiResponseSchema = z.object({
   id: z.string().nullable().optional(),
   product_description: z.string().nullable().optional(),
+  best_match: z.string().nullable().optional(),
   item_number: z.string().nullable().optional(),
   vendor_number: z.string().nullable().optional(),
   quantity: z.string().nullable().optional(), // string or null or undefined

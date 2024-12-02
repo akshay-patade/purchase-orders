@@ -34,6 +34,7 @@ class OrderDetailsAdmin(admin.ModelAdmin):
         'id', 
         "order_id",
         "product_description",
+        "best_match",
         "item_number",
         "vendor_number",
         "quantity",
