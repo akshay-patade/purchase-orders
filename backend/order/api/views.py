@@ -1,7 +1,8 @@
 import json
 import os
 
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.utils import extend_schema, OpenApiExample
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -25,21 +26,7 @@ class ProcessOrderView(APIView):
             "If `order_id` is provided, the order details for that ID will be updated. "
             "If not provided, a new order is created."
         ),
-        parameters=[
-            OpenApiParameter(
-                name="order_id",
-                description="Optional Order ID for updating an existing order. If not provided, a new order will be created.",
-                required=False,
-                type=int,
-                examples=[
-                    OpenApiExample(
-                        name="Existing Order ID",
-                        description="Use an existing order ID to update order details.",
-                        value="13848947389473489",
-                    )
-                ],
-            )
-        ],
+
         request={
             'multipart/form-data': {
                 'type': 'object',
