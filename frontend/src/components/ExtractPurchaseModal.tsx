@@ -12,6 +12,7 @@ interface ExtractPurchaseModalProps {
   setMappingsData: React.Dispatch<
     React.SetStateAction<ExtractPurchaseOrdersApiResponse | null>
   >;
+  order_id?: number | null;
 }
 
 const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
@@ -74,63 +75,6 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
     }
   };
 
-  async function convertDataToFormat(
-    mappingsData: ExtractPurchaseOrdersApiResponse
-  ) {
-    try {
-      const chatCompletion = await getGroqChatCompletion(mappingsData);
-      // Print the completion returned by the LLM.
-      let temp: string | null = chatCompletion.choices[0]?.message?.content;
-      if (!temp) {
-        temp = "";
-        setMappingsData(null);
-        setError("An unexpected Error occured");
-      } else setMappingsData(JSON.parse(temp));
-
-      console.log(temp);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message); // Set the error state
-      } else {
-        console.error("An unexpected error occurred");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function getGroqChatCompletion(
-    mappingsData: ExtractPurchaseOrdersApiResponse
-  ) {
-    return groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `You are an advanced language model tasked with reorganising my array of json data based on a defined schema. 
-                    This is my stringified array of Json data. ${JSON.stringify(
-                      mappingsData
-                    )}  - Map the json array keys in the input table to the given schema fields based on
-                     their meanings. - If key names are ambiguous, use your best judgment to align them with schema fields.
-                      - If any field does not have a value or cannot be calculated, leave it blank.
-                       - Return the output in the specified JSON format only, without additional explanations.
-                        - Follow the schema definition below: Schema Fields:
-                    1. **product_description**: A description of the product or service. If the data is not present, then insert "N/A"
-                    2. **item_number**: A unique code for identifying the product. Note: It is not description. The item number is not the product_description. It will generally be a numeric or a short varchar field. If the data is not present, then insert "N/A"
-                    3. **vendor_number**: A code provided by the manufacturer or vendor.It will generally be a numeric or a short varchar field. If the data is not present, then insert "N/A"
-                    4. **Quantity**: The number of units of the product. If there are any characters or special characters in these fields, please  remove it and give me only the numeric data . If the data is not present then insert 0
-                    5. **Unit Price**: The price per unit of the product.Don't try to leave it blank assuming they will be calculated or provided from an external source. if the data is present then insert 0 
-                    6. **Total**: The total price of the product (calculated as Quantity multiplied by Unit Price). Don't try to leave it blank assuming they will be calculated or provided from an external source. if the data is present then insert 0`,
-        },
-        {
-          role: "user",
-          content:
-            "Convert the following data into the array of JSON format based on the schema provided above. Use your best judgment to map ambiguous column names. Just give me the array of json data. Do not give me any explanataion",
-        },
-      ],
-      model: "llama3-8b-8192",
-    });
-  }
-
   useEffect(() => {
     const fetchMappings = async () => {
       try {
@@ -143,7 +87,7 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
         formData.append("file", file);
 
         const res = await fetch(
-          "https://plankton-app-qajlk.ondigitalocean.app/extraction_api",
+          "http://127.0.0.1:8000/api/order/extractOrderDetails/",
           {
             method: "POST",
             headers: {
@@ -160,8 +104,8 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
         }
 
         const result = await res.json();
-        const data = result["result_data"];
-        convertDataToFormat(data);
+        const data = result["order_details"];
+        setMappingsData(data);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message); // Set the error state
