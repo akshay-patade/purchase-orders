@@ -2,6 +2,8 @@ venv
 *.sqlite3
 __pycache__/
 
+/backend/media/
+
 
 # dependencies
 /node_modules

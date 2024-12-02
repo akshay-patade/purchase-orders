@@ -53,5 +53,9 @@ class OrderDetailsAdmin(admin.ModelAdmin):
         "total",
         "updated_at"
     )
+        # Customize search capabilities
+    search_fields = [
+        'id', 
+    ]
 
     # Customize search capabilities

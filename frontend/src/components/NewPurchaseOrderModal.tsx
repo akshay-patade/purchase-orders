@@ -6,11 +6,15 @@ import { ExtractPurchaseOrdersApiResponse } from "../schemas/ExtractPurchaseOrde
 interface NewPurchaseOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
+  order_id?: number;
+  order_process_date?: string;
 }
 
 const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
   isOpen,
   onClose,
+  order_id,
+  order_process_date,
 }) => {
   const [activeTab, setActiveTab] = useState<string>("Upload");
   const [file, setFile] = useState<File | null>(null);
@@ -128,44 +132,27 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
             <div className="space-y-4">
               <div>
                 <label className="block text-md font-large text-gray-400">
-                  Request ID
+                  Order Date
                 </label>
                 <input
                   type="text"
-                  value="1730261419548"
+                  value={order_id || ""}
                   readOnly
                   className="mt-1 block w-full rounded-md  focus:ring-blue-500 focus:border-blue-500 sm:text-md"
                 />
               </div>
-              <div>
-                <label className="block text-md font-medium text-gray-400">
-                  Extract PO Date
-                </label>
-                <input
-                  type="date"
-                  className="mt-1 block w-full rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-md"
-                />
-              </div>
-              <div>
-                <label className="block text-md font-medium text-gray-400">
-                  Extract Delivery Address
-                </label>
-                <input
-                  type="text"
-                  placeholder="Address"
-                  className="mt-1 block w-full rounded-md  focus:ring-blue-500 focus:border-blue-500 sm:text-md"
-                />
-              </div>
-              <div>
-                <label className="block text-md font-medium text-gray-400">
-                  Extract PO Number
-                </label>
-                <input
-                  type="text"
-                  placeholder="PO Number"
-                  className="mt-1 block w-full rounded-md  focus:ring-blue-500 focus:border-blue-500 sm:text-md"
-                />
-              </div>
+              {order_process_date && (
+                <div>
+                  <label className="block text-md font-medium text-gray-400">
+                    Order Processed Date
+                  </label>
+                  <input
+                    type="date"
+                    value={order_process_date}
+                    className="mt-1 block w-full rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-md"
+                  />
+                </div>
+              )}
 
               {/* Navigation bar for Upload, Extract and Match */}
 

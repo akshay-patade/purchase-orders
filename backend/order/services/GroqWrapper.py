@@ -35,7 +35,7 @@ class GroqWrapper:
         3. **vendor_number**: A code provided by the manufacturer or vendor. Typically a numeric or short varchar field. If the data is not present, insert "N/A".
         4. **quantity**: The number of units of the product. Remove any characters or special symbols, retaining only numeric values. If the data is not present, insert `0`.
         5. **unit_price**: The price per unit of the product. If the data is not present, insert `0`.
-        6. **total**: The total price of the product (calculated as quantity multiplied by  unit_price). If the data is not present for quantity or unit_price or total, insert `0`.
+        6. **total**: The total price of the product (calculated as quantity multiplied by  unit_price). If the data is not present for quantity  or unit_price or total, insert `0`.
 
         """
 
