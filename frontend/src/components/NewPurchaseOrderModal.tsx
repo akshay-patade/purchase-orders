@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import Spinner from "./Spinner";
 import UploadPurchaseModal from "./UploadPurchaseModal";
 import ExtractPurchaseModal from "./ExtractPurchaseModal";
 import MatchPurchaseModal from "./MatchPurchaseModal";
@@ -7,30 +8,65 @@ import { getFormattedDate } from "../helpers";
 import { ExtractPurchaseOrdersApiResponse } from "../schemas/ExtractPurchaseOrdersApiResponseSchema";
 
 interface NewPurchaseOrderModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isNewPurchaseOrderModal: boolean;
+  closeNewPurchaseOrderModal: () => void;
+  orderId: string;
+  fileUrl: string;
+  uploadedAt: string;
+  orderProcessStatus: string;
+  setOrderId: React.Dispatch<React.SetStateAction<string>>;
+  setFileUrl: React.Dispatch<React.SetStateAction<string>>;
+  setUploadedAt: React.Dispatch<React.SetStateAction<string>>;
+  setOrderProcessStatus: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
-  isOpen,
-  onClose,
+  isNewPurchaseOrderModal,
+  closeNewPurchaseOrderModal,
+  orderId,
+  fileUrl,
+  uploadedAt,
+  orderProcessStatus,
+  setOrderId,
+  setUploadedAt,
+  setOrderProcessStatus,
+  setFileUrl,
 }) => {
   const formattedDate = getFormattedDate();
 
   const [activeTab, setActiveTab] = useState<string>("Upload");
   const [file, setFile] = useState<File | null>(null);
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [mappingsData, setMappingsData] =
     useState<ExtractPurchaseOrdersApiResponse | null>(null); // This State is used to store the mappings we get from the extraction api. In order to avoid mulitple api request
-
-  const [orderId, setOrderId] = useState<string>("");
-  const [uploadedAt, setUploadedAt] = useState<string>(formattedDate);
-  const [orderProcessStatus, setOrderProcessStatus] =
-    useState<string>("Processed");
 
   const [currentView, setCurrentView] = useState<
     "Upload" | "Extract" | "Match"
   >("Upload");
+
+  useEffect(() => {
+    const fetchFileThroughUrl = async () => {
+      try {
+        const response = await fetch(fileUrl);
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch file");
+        }
+
+        const blob = await response.blob();
+        const fileName = fileUrl.split("/").pop() || "downloaded-file";
+        const file = new File([blob], fileName, { type: blob.type });
+        setFile(file);
+      } catch (err) {
+        if (err instanceof Error) {
+          console.log(err.message);
+        } else {
+          console.error("An unexpected error occurred");
+        }
+      }
+    };
+
+    if (fileUrl && fileUrl.length > 0) fetchFileThroughUrl();
+  }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -44,7 +80,7 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
   const clearPreview = () => {
     if (fileUrl) {
       URL.revokeObjectURL(fileUrl); // Clean up the URL
-      setFileUrl(null);
+      setFileUrl("");
     }
     setFile(null); // Clear the file state
     setMappingsData(null);
@@ -63,7 +99,7 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
   const handleNewPurchaseModalClose = () => {
     //Call the clearPreview resource to free the resouce and then call the Onclose function to close the modal
     clearPreview();
-    onClose();
+    closeNewPurchaseOrderModal();
   };
 
   const renderContent = () => {
@@ -83,10 +119,10 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
             setMappingsData={setMappingsData}
             handleFindBestMatch={handleFindBestMatch}
             orderId={orderId}
-            setOrderId={setOrderId}
             uploadedAt={uploadedAt}
-            setUploadedAt={setUploadedAt}
             orderProcessStatus={orderProcessStatus}
+            setOrderId={setOrderId}
+            setUploadedAt={setUploadedAt}
             setOrderProcessStatus={setOrderProcessStatus}
           />
         );
@@ -108,7 +144,7 @@ const NewPurchaseOrderModal: React.FC<NewPurchaseOrderModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isNewPurchaseOrderModal) return null;
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Fullscreen Modal */}

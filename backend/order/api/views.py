@@ -6,6 +6,7 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import generics
 from elasticsearch import RequestError
 
 from django.shortcuts import get_object_or_404
@@ -17,7 +18,11 @@ from order.models import Order, OrderDetails
 from order.services.TextWrapper import TextWrapper
 from order.services.GroqWrapper import GroqWrapper
 
-from .serializers import OrderDetailsSerializer
+from .serializers import OrderDetailsSerializer, OrderSerializer
+
+class OrderListView(generics.ListAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
 
 class ProcessOrderView(APIView):
 
@@ -354,7 +359,7 @@ class FinalizeOrderView(APIView):
             ),
         ],
     )
-    
+
     def post(self, request):
         order_id = request.data.get('order_id')
         

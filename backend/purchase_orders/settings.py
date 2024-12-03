@@ -177,3 +177,5 @@ CORS_ALLOW_HEADERS = [
 ]
 
 #CORS_ALLOW_ALL_ORIGINS = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'ALLOWALL'  # To allow all origins (not recommended for security reasons)

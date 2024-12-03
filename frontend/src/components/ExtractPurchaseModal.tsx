@@ -13,10 +13,12 @@ interface ExtractPurchaseModalProps {
   >;
   handleFindBestMatch: () => void;
   orderId: string;
-  setOrderId: React.Dispatch<React.SetStateAction<string>>;
+
   uploadedAt: string;
-  setUploadedAt: React.Dispatch<React.SetStateAction<string>>;
+
   orderProcessStatus: string;
+  setOrderId: React.Dispatch<React.SetStateAction<string>>;
+  setUploadedAt: React.Dispatch<React.SetStateAction<string>>;
   setOrderProcessStatus: React.Dispatch<React.SetStateAction<string>>;
 }
 
@@ -26,10 +28,10 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
   setMappingsData,
   handleFindBestMatch,
   orderId,
-  setOrderId,
   uploadedAt,
-  setUploadedAt,
   orderProcessStatus,
+  setOrderId,
+  setUploadedAt,
   setOrderProcessStatus,
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -168,21 +170,38 @@ const ExtractPurchaseModal: React.FC<ExtractPurchaseModalProps> = ({
 
         const formData = new FormData();
         formData.append("file", file);
+        let res;
 
-        const res = await fetch(
-          `${process.env.REACT_APP_BACKEND_URL}/api/order/extractOrderDetails/`,
-          {
-            method: "POST",
-            headers: {
-              Accept: "application/json",
-            },
-            body: formData,
-          }
-        );
+        if (orderId) {
+          formData.append("order_id", orderId);
+          res = await fetch(
+            `${process.env.REACT_APP_BACKEND_URL}/api/order/extractOrderDetails/`,
+            {
+              method: "POST",
+              headers: {
+                Accept: "application/json",
+              },
+              body: formData,
+            }
+          );
+        } else {
+          res = await fetch(
+            `${process.env.REACT_APP_BACKEND_URL}/api/order/extractOrderDetails/`,
+            {
+              method: "POST",
+              headers: {
+                Accept: "application/json",
+              },
+              body: formData,
+            }
+          );
+        }
 
         if (!res.ok) {
+          const data = await res.json();
           throw new Error(
-            "Failed to Get the Contents from the data. Please use some other File"
+            data.error ||
+              "Failed to Get the Contents from the data. Please use some other File"
           );
         }
 
