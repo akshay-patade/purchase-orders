@@ -1,6 +1,5 @@
 from django.contrib import admin
-from django.utils.html import format_html
-from .models import Order
+from .models import Order, OrderDetails
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
@@ -19,43 +18,45 @@ class OrderAdmin(admin.ModelAdmin):
         'id', 
         'uploaded_at'
     )
-    
-    # # Custom method to display processed status with color
-    # def processed_status(self, obj):
-    #     color = 'green' if obj.processed == Order.ProcessedStatus.FINAL else 'orange'
-    #     return format_html(
-    #         '<span style="color: {};">{}</span>', 
-    #         color, 
-    #         obj.get_processed_display()
-    #     )
-    # processed_status.short_description = 'Processed Status'
-    
-    # # Custom method to preview file (if it's a small file type)
-    # def file_preview(self, obj):
-    #     try:
-    #         # This is a basic preview - adjust based on your file type
-    #         preview_text = f"Binary File ({len(obj.file)} bytes)"
-    #         return preview_text
-    #     except Exception:
-    #         return "Unable to preview file"
-    # file_preview.short_description = 'File'
-    
-    # # Customize the form
-    # fieldsets = (
-    #     (None, {
-    #         'fields': (
-    #             'id', 
-    #             'uploaded_at', 
-    #             'processed'
-    #         )
-    #     }),
-    #     ('File Details', {
-    #         'fields': ('file',)
-    #     })
-    # )
-    
+
     # Customize search capabilities
     search_fields = (
         'id', 
         'process_status'
     )
+
+
+@admin.register(OrderDetails)
+class OrderDetailsAdmin(admin.ModelAdmin):
+
+    # List of fields to display in the admin list view
+    list_display = (
+        'id', 
+        "order_id",
+        "product_description",
+        "best_match",
+        "item_number",
+        "vendor_number",
+        "quantity",
+        "unit_price",
+        "total",
+        "updated_at"
+    )
+    
+    readonly_fields = (
+        'id', 
+        "order_id",
+        "product_description",
+        "item_number",
+        "vendor_number",
+        "quantity",
+        "unit_price",
+        "total",
+        "updated_at"
+    )
+        # Customize search capabilities
+    search_fields = [
+        'id', 
+    ]
+
+    # Customize search capabilities
