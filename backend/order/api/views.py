@@ -6,9 +6,11 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from elasticsearch import RequestError
 
 from django.shortcuts import get_object_or_404
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 from product.services.ElasticSearchWrapper import ElasticSearchWrapper
 from order.models import Order, OrderDetails
@@ -27,7 +29,6 @@ class ProcessOrderView(APIView):
             "If `order_id` is provided, the order details for that ID will be updated. "
             "If not provided, a new order is created."
         ),
-
         request={
             'multipart/form-data': {
                 'type': 'object',
@@ -52,85 +53,74 @@ class ProcessOrderView(APIView):
                 name="Error Example",
                 value={"error": "This order is already processed and cannot be updated."},
                 description="An example error response."
+            ),
+            500: OpenApiExample(
+                name="Server Error",
+                value={"error": "An unexpected error occurred."},
+                description="An example server error response."
             )
         }
     )
-
+    
     def post(self, request, *args, **kwargs):
-        # Extract the file and order ID from the request
-        file = request.FILES.get('file')
-        order_id: int = request.data.get('order_id')
+        try:
+            file = request.FILES.get('file')
+            order_id = request.data.get('order_id')
 
-        if not file:
-            return Response({"error": "File is required."}, status=status.HTTP_400_BAD_REQUEST)
+            if not file:
+                return Response({"error": "File is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if order ID is provided
-        if order_id and (order_id).isdigit():
-            # Try to fetch the existing order
-            order = get_object_or_404(Order, id=order_id)
+            if order_id and str(order_id).isdigit():
+                order = get_object_or_404(Order, id=order_id)
+                if order.process_status == Order.ProcessedStatus.FINAL:
+                    return Response({"error": "This order is already processed and cannot be updated."},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                order.order_details.all().delete()
+            else:
+                order = Order.objects.create(file=file)
 
-            # Check if the process status is FINAL
-            if order.process_status == Order.ProcessedStatus.FINAL:
-                return Response({"error": "This order is already processed and cannot be updated."},
-                                status=status.HTTP_400_BAD_REQUEST)
+            media_root_path = settings.MEDIA_ROOT
+            full_file_path = os.path.join(media_root_path, order.file.path)
+            text_wrapper = TextWrapper(document_path=full_file_path)
+            clean_product_table = text_wrapper.extract_product_table()
 
-            # Delete existing order details
-            order.order_details.all().delete()
+            groq_wrapper = GroqWrapper()
+            response_text = groq_wrapper.extractOrderDetails(clean_product_table)
+            order_details_data = json.loads(response_text)
 
-        else:
-            # Create a new order if ID is not provided
-            order = Order.objects.create(file=file)
+            elastic_search_wrapper = ElasticSearchWrapper()
+            queries = [detail.get("product_description") for detail in order_details_data]
+            bestMatchResults = elastic_search_wrapper.getProductMatchings(queries)
 
-        # Extract contents from the file (assuming the method returns a list of order details)
+            for detail, bestMatch in zip(order_details_data, bestMatchResults):
+                bestResult = bestMatch["matches"][0]["description"]
+                OrderDetails.objects.create(
+                    order_id=order,
+                    product_description=detail.get("product_description"),
+                    best_match=bestResult,
+                    item_number=detail.get("item_number"),
+                    vendor_number=detail.get("vendor_number"),
+                    quantity=detail.get("quantity"),
+                    unit_price=detail.get("unit_price"),
+                    total=detail.get("total"),
+                )
 
-        media_root_path = settings.MEDIA_ROOT
+            serialized_order_details = OrderDetailsSerializer(order.order_details.all(), many=True)
+            response_data = {
+                "order_id": order.id,
+                "created_at": order.uploaded_at,
+                "process_status": order.process_status,
+                "order_details": serialized_order_details.data
+            }
+            return Response(response_data, status=status.HTTP_201_CREATED)
 
-        full_file_path = os.path.join(media_root_path, order.file.path)
-        text_wrapper = TextWrapper(document_path = full_file_path)
-        clean_product_table = text_wrapper.extract_product_table()
-
-        #Once the contents are extracted it is time to organise the data according to our defined schema
-        groq_wrapper = GroqWrapper()
-
-        response_text = groq_wrapper.extractOrderDetails(clean_product_table)
-        order_details_data = json.loads(response_text)
-
-        elastic_search_wrapper = ElasticSearchWrapper()
-
-        queries = []
-        for detail in order_details_data:
-            queries.append(detail.get("product_description"))
-        
-        bestMatchResults = elastic_search_wrapper.getProductMatchings(queries)
-        
-        pointer = 0
-        # Create new order details
-        for detail in order_details_data:
-            bestResult = bestMatchResults[pointer]["matches"][0]["description"]
-            OrderDetails.objects.create(
-                order_id=order,
-                product_description=detail.get("product_description"),
-                best_match = bestResult,
-                item_number=detail.get("item_number"),
-                vendor_number=detail.get("vendor_number"),
-                quantity=detail.get("quantity"),
-                unit_price=detail.get("unit_price"),
-                total=detail.get("total"),
-            )
-            pointer += 1
-
-        # Serialize the order details for response
-        serialized_order_details = OrderDetailsSerializer(order.order_details.all(), many=True)
-        
-        # Return the response including the order_id
-        response_data = {
-            "order_id": order.id,
-            "created_at": order.uploaded_at,
-            "process_status": order.process_status,
-            "order_details": serialized_order_details.data
-        }
-        return Response(response_data, status=status.HTTP_201_CREATED)
-
+        except ValidationError as ve:
+            return Response({"error": f"Validation error: {str(ve)}"}, status=status.HTTP_400_BAD_REQUEST)
+        except RequestError as re:
+            return Response({"error": f"Elasticsearch error: {str(re)}"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
 class OrderDetailsByOrderId(APIView):
 
     @extend_schema(
@@ -141,8 +131,6 @@ class OrderDetailsByOrderId(APIView):
             "Return the order details if we found the record "
             "Raise a 404 if order details are not found."
         ),
-
-
         parameters=[
             OpenApiParameter(
                 name='order_id', 
@@ -152,7 +140,6 @@ class OrderDetailsByOrderId(APIView):
                 required=True
             ),
         ],
-
         request={
                 'application/json': {
                     'type': 'object',
@@ -177,28 +164,44 @@ class OrderDetailsByOrderId(APIView):
                     'error': {'type': 'string'}
                 }
             },
+            404: {
+                'type': 'object', 
+                'properties': {
+                    'message': {'type': 'string'}
+                }
+            },
+            500: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
         }
     )
 
-
     def get(self, request):
-        order_id = request.query_params.get('order_id')
-        if not order_id:
-            return Response(
-                {"error": "order_id query parameter is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        order_details = OrderDetails.objects.filter(order_id=order_id)
-        if not order_details.exists():
-            return Response(
-                {"message": "No order details found for the given order_id."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        serializer = OrderDetailsSerializer(order_details, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            order_id = request.query_params.get('order_id')
+            if not order_id:
+                return Response(
+                    {"error": "order_id query parameter is required."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            order_details = OrderDetails.objects.filter(order_id=order_id)
+            if not order_details.exists():
+                return Response(
+                    {"message": "No order details found for the given order_id."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            serializer = OrderDetailsSerializer(order_details, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
+        except ValidationError as ve:
+            return Response({"error": f"Validation error: {str(ve)}"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class AddOrUpdateOrderDetails(APIView):
     def post(self, request):
