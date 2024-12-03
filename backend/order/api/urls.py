@@ -1,6 +1,6 @@
 
 from django.urls import path
-from .views import ProcessOrderView, OrderDetailsByOrderId, AddOrUpdateOrderDetails, DeleteOrderDetails
+from .views import ProcessOrderView, OrderDetailsByOrderId, AddOrUpdateOrderDetails, DeleteOrderDetails, FinalizeOrderView
 
 urlpatterns = [
     path('extractOrderDetails/', ProcessOrderView.as_view(), name="extract_order_details"),
@@ -8,4 +8,5 @@ urlpatterns = [
     path('order-details/', AddOrUpdateOrderDetails.as_view(), name='add-order-details'),
     path('order-details/<str:pk>/', AddOrUpdateOrderDetails.as_view(), name='update-order-details'),
     path('order-details/delete/<str:pk>/', DeleteOrderDetails.as_view(), name='delete-order-details'),
+    path('finalize-order/', FinalizeOrderView.as_view(), name='finalize-order'),
 ]

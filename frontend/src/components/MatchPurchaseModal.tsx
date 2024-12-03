@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import Spinner from "./Spinner";
-
 import {
   ExtractPurchaseOrdersApiResponse,
   ExtractPurchaseOrders,
@@ -41,10 +40,13 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
   const [searchResults, setSearchResults] = useState<string[]>([]);
 
   const handleEdit = async (data: ExtractPurchaseOrders, index: number) => {
+    setTableError(null);
     setError(null);
+    setModalError(null);
+
     setEditData(data);
     setShowModal(true);
-    setModalError(null);
+
     // Reset search-related states when opening modal
     setSearchQuery("");
 
@@ -88,6 +90,10 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
 
   // Function to handle search
   const handleSearch = async () => {
+    setTableError(null);
+    setError(null);
+    setModalError(null);
+
     if (!searchQuery.trim()) {
       setSearchResults(originalSearchResults);
       return;
@@ -120,6 +126,10 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
 
   // Function to select a best match
   const handleBestMatchSelect = (match: string) => {
+    setTableError(null);
+    setError(null);
+    setModalError(null);
+
     if (editData) {
       setEditData({
         ...editData,
@@ -131,9 +141,17 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
   const handleCloseModal = () => {
     setShowModal(false);
     setSearchResults([]);
+
+    setTableError(null);
+    setError(null);
+    setModalError(null);
   };
 
+  //Internal function which is used to show the updated data in the frontend
   const handleMappingDataUpdate = () => {
+    setTableError(null);
+    setError(null);
+    setModalError(null);
     if (!mappingsData || !editData || !editData.id) return;
 
     // Update the mappingsData
@@ -145,9 +163,13 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
     setMappingsData(updatedMappingsData);
   };
 
+  //This function is invoked when user enters the edit product option and saves the modal
   const handleModalSave = async () => {
     try {
       const orderId = editData?.["id"] || "";
+      setTableError(null);
+      setError(null);
+      setModalError(null);
       const response = await fetch(
         `${process.env.REACT_APP_BACKEND_URL}/api/order/order-details/${orderId}/`,
         {
@@ -177,10 +199,52 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
     }
   };
 
+  //This function is used to change the order status from processed to final
+  const handleOrderSave = async () => {
+    try {
+      setTableError(null);
+      setError(null);
+      setModalError(null);
+      const orderId = mappingsData?.[0]["order_id"] || "";
+
+      const bodyData = { order_id: orderId };
+
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/order/finalize-order/`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(bodyData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Something went wrong. Please make sure that you don't submit the document whose status is final "
+        );
+      }
+
+      alert("Changed the order status from Processed to finalised");
+      window.location.href = "/";
+    } catch (err) {
+      if (err instanceof Error) {
+        setTableError(err.message);
+      } else {
+        console.error("An unexpected error occurred");
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchbestMappings = async () => {
       try {
         setIsLoading(true);
+        setTableError(null);
+        setError(null);
+        setModalError(null);
 
         if (!mappingsData || mappingsData.length === 0)
           throw new Error(
@@ -265,6 +329,19 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
               </table>
             )}
           </div>
+
+          {tableError && (
+            <div className="bg-red-500 mt-4 text-white p-4 rounded-md shadow-md">
+              <p>{tableError}</p>
+            </div>
+          )}
+
+          <button
+            className="px-4 py-2 mt-4 bg-green-500 text-white rounded hover:bg-green-700"
+            onClick={handleOrderSave}
+          >
+            Submit the Order
+          </button>
         </div>
       )}
 

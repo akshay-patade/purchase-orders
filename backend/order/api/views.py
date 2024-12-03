@@ -2,6 +2,7 @@ import json
 import os
 
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -312,3 +313,63 @@ class DeleteOrderDetails(APIView):
             {"message": "Order detail deleted successfully."},
             status=status.HTTP_200_OK
         )
+    
+class FinalizeOrderView(APIView):
+    @extend_schema(
+        summary="Finalize an order",
+        description="Changes the process status of an order from 'processed' to 'final'.",
+        request=OpenApiTypes.OBJECT,
+        parameters=[
+            OpenApiParameter(
+                name="order_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="The ID of the order to finalize",
+                required=True,
+            ),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT,
+            400: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT,
+        },
+        examples=[
+            OpenApiExample(
+                "Successful Response",
+                value={"message": "Order status updated to final"},
+                status_codes=["200"],
+                response_only=True,
+            ),
+            OpenApiExample(
+                "Error: Already Final",
+                value={"error": "Can't edit the order since its status is already set to final"},
+                status_codes=["400"],
+                response_only=True,
+            ),
+            OpenApiExample(
+                "Error: Missing Order ID",
+                value={"error": "order_id is required"},
+                status_codes=["400"],
+                response_only=True,
+            ),
+        ],
+    )
+    
+    def post(self, request):
+        order_id = request.data.get('order_id')
+        
+        if not order_id:
+            return Response({'error': 'order_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        order = get_object_or_404(Order, id=order_id)
+        
+        if order.process_status == Order.ProcessedStatus.FINAL:
+            return Response(
+                {'error': "Can't edit the order since its status is already set to final"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        order.process_status = Order.ProcessedStatus.FINAL
+        order.save()
+        
+        return Response({'message': 'Order status updated to final'}, status=status.HTTP_200_OK)
