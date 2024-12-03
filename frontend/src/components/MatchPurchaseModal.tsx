@@ -31,14 +31,20 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
   const [showModal, setShowModal] = useState<boolean>(false);
   const [editData, setEditData] = useState<ExtractPurchaseOrders | null>(null);
   const [tableError, setTableError] = useState<string | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const [originalSearchResults, setOriginalSearchResults] = useState<string[]>(
+    []
+  );
   const [searchResults, setSearchResults] = useState<string[]>([]);
 
   const handleEdit = async (data: ExtractPurchaseOrders, index: number) => {
     setError(null);
     setEditData(data);
     setShowModal(true);
+    setModalError(null);
     // Reset search-related states when opening modal
     setSearchQuery("");
 
@@ -67,15 +73,15 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
       const descriptions: string[] = searchData.map(
         (item: SearchItem) => item.description
       );
-      console.log(descriptions);
 
       setSearchResults(descriptions);
+      setOriginalSearchResults(descriptions);
     } catch (err) {
       if (err instanceof Error) {
-        setSearchResults([]);
+        setSearchResults(originalSearchResults);
       } else {
         console.error("An unexpected error occurred");
-        setSearchResults([]);
+        setSearchResults(originalSearchResults);
       }
     }
   };
@@ -83,15 +89,20 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
   // Function to handle search
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      setSearchResults([]);
+      setSearchResults(originalSearchResults);
       return;
     }
 
     try {
-      setIsLoading(true);
-      // Simulated API call - replace with your actual API endpoint
       const response = await fetch(
-        `/api/search-best-matches?query=${searchQuery}`
+        `${process.env.REACT_APP_BACKEND_URL}/api/product/search/?query=${searchQuery}/`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       if (!response.ok) {
@@ -99,12 +110,11 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
       }
 
       const results = await response.json();
-      setSearchResults(results);
+      const data = results["suggestions"];
+      setSearchResults(data);
     } catch (err) {
-      setError("Failed to perform search");
+      setModalError("Failed to perform search");
       console.error(err);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -115,15 +125,56 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
         ...editData,
         best_match: match,
       });
-      // Reset search results
-      setSearchQuery("");
-      setSearchResults([]);
     }
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setSearchResults([]);
+  };
+
+  const handleMappingDataUpdate = () => {
+    if (!mappingsData || !editData || !editData.id) return;
+
+    // Update the mappingsData
+    const updatedMappingsData = mappingsData.map((item) =>
+      item.id === editData.id ? { ...item, ...editData } : item
+    );
+
+    // Update the state
+    setMappingsData(updatedMappingsData);
+  };
+
+  const handleModalSave = async () => {
+    try {
+      const orderId = editData?.["id"] || "";
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/order/order-details/${orderId}/`,
+        {
+          method: "PATCH",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Something went wrong. Please make sure that you don't process the document whose status is final or please select the different best product matching as compared to previous"
+        );
+      }
+
+      handleMappingDataUpdate();
+      handleCloseModal();
+    } catch (err) {
+      if (err instanceof Error) {
+        setModalError(err.message);
+      } else {
+        console.error("An unexpected error occurred");
+      }
+    }
   };
 
   useEffect(() => {
@@ -226,11 +277,43 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Best Match
+                  Best Product Match
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Best Product Match"
+                  value={editData.best_match || ""}
+                  className="w-full px-3 py-2 border rounded flex-grow"
+                  readOnly
+                />
+
+                {/* Dropdown for top matches or search results */}
+                {(searchResults.length > 0 || topMatches.length > 0) && (
+                  <select
+                    value={editData.best_match || ""}
+                    onChange={(e) => handleBestMatchSelect(e.target.value)}
+                    className="w-full px-3 py-2 border rounded mt-4"
+                  >
+                    <option value="">Select Best Match</option>
+                    {/* Prioritize search results if available */}
+                    {searchResults.length > 0 &&
+                      searchResults.map((match, index) => (
+                        <option key={`search-${index}`} value={match}>
+                          {match}
+                        </option>
+                      ))}
+                  </select>
+                )}
+
+                <label className="block text-sm font-medium mt-2">
+                  Can't find in the drop down you are looking for? Don't worry
+                  we got you covered. Type the query in the search box and hit
+                  enter to get relevant details
                 </label>
 
                 {/* Search input */}
-                <div className="flex space-x-2 mb-2">
+                <div className="flex space-x-2 mt-4">
                   <input
                     type="text"
                     placeholder="Search best matches"
@@ -246,29 +329,6 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
                     Search
                   </button>
                 </div>
-
-                {/* Dropdown for top matches or search results */}
-                {(searchResults.length > 0 || topMatches.length > 0) && (
-                  <select
-                    value={editData.best_match || ""}
-                    onChange={(e) => handleBestMatchSelect(e.target.value)}
-                    className="w-full px-3 py-2 border rounded"
-                  >
-                    <option value="">Select Best Match</option>
-                    {/* Prioritize search results if available */}
-                    {searchResults.length > 0
-                      ? searchResults.map((match, index) => (
-                          <option key={`search-${index}`} value={match}>
-                            {match}
-                          </option>
-                        ))
-                      : topMatches.map((match, index) => (
-                          <option key={`top-${index}`} value={match}>
-                            {match}
-                          </option>
-                        ))}
-                  </select>
-                )}
               </div>
 
               {/* Rest of the form remains the same */}
@@ -282,12 +342,17 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  // onClick={handleModalSave}
+                  onClick={handleModalSave}
                   className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
                 >
                   Save
                 </button>
               </div>
+              {modalError && (
+                <div className="bg-red-500 text-white p-4 rounded-md shadow-md">
+                  <p>{modalError}</p>
+                </div>
+              )}
             </form>
           </div>
         </div>

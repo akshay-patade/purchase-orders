@@ -2,7 +2,6 @@ import json
 import os
 
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter
-from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -249,6 +248,11 @@ class AddOrUpdateOrderDetails(APIView):
                 {"error": "Order detail not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
+        except ValidationError as ve:
+            return Response({"error": f"Validation error: {str(ve)}"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         serializer = OrderDetailsSerializer(order_detail, data=request.data)
         if serializer.is_valid():
@@ -260,10 +264,23 @@ class AddOrUpdateOrderDetails(APIView):
         # Partially update an existing order detail
         try:
             order_detail = OrderDetails.objects.get(pk=pk)
+
         except OrderDetails.DoesNotExist:
             return Response(
                 {"error": "Order detail not found."},
                 status=status.HTTP_404_NOT_FOUND
+            )
+        
+        except ValidationError as ve:
+            return Response({"error": f"Validation error: {str(ve)}"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        if order_detail.order_id.process_status == Order.ProcessedStatus.FINAL:
+            return Response(
+                {"error": "This order's process_status is set to final. It cannot be updated."},
+                status=status.HTTP_403_FORBIDDEN
             )
 
         serializer = OrderDetailsSerializer(order_detail, data=request.data, partial=True)
@@ -272,10 +289,7 @@ class AddOrUpdateOrderDetails(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-
 class DeleteOrderDetails(APIView):
-
     def delete(self, request, pk):
         try:
             order_detail = OrderDetails.objects.get(pk=pk)
