@@ -1,7 +1,10 @@
+from elasticsearch import RequestError
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from django.core.exceptions import ValidationError
 
 
 from product.services.ElasticSearchWrapper import ElasticSearchWrapper
@@ -41,28 +44,47 @@ class ProductMatchingView(APIView):
                     'error': {'type': 'string'}
                 }
             },
+            500: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
         }
     )
 
     def post(self, request, *args, **kwargs):
+        try:
+            queries = request.data.get("queries")
+            print(queries)
 
-        queries = request.data.get("queries")
-        print(queries)
-
-
-        if not queries or not isinstance(queries, list):
-            return Response(
-                {"error": "Invalid data. 'queries' should be a list."},
-                status=status.HTTP_400_BAD_REQUEST
+            if not queries or not isinstance(queries, list):
+                return Response(
+                    {"error": "Invalid data. 'queries' should be a list."},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
-        elastic_search_wrapper = ElasticSearchWrapper()
-        data = elastic_search_wrapper.getProductMatchings(queries)
+            elastic_search_wrapper = ElasticSearchWrapper()
+            data = elastic_search_wrapper.getProductMatchings(queries)
 
-        result = {"message": "Queries processed successfully", "queries": data}
-        
-        
-        return Response(result, status=status.HTTP_200_OK)
+            result = {"message": "Queries processed successfully", "queries": data}
+            return Response(result, status=status.HTTP_200_OK)
+
+        except ValidationError as ve:
+            return Response(
+                {"error": f"Validation error: {str(ve)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except RequestError as re:
+            return Response(
+                {"error": f"Elasticsearch error: {str(re)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class ProductSuggestionsView(APIView):
         
@@ -110,29 +132,49 @@ class ProductSuggestionsView(APIView):
                     'error': {'type': 'string'}
                 }
             },
+            500: {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
         }
         )
 
         def get(self, request, *args, **kwargs):
-            # Get search parameters from the request
-            search_field = "description"
-            query = request.query_params.get('query', '')
-            
-            if not search_field or not query:
+            try:
+                # Get search parameters from the request
+                search_field = "description"
+                query = request.query_params.get('query', '')
+                
+                if not search_field or not query:
+                    return Response({
+                        'error': 'Both search field and query are required'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                elastic_search_wrapper = ElasticSearchWrapper()
+                suggestions = elastic_search_wrapper.productBySearchField(search_field, query)
+
                 return Response({
-                    'error': 'Both search field and query are required'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            elastic_search_wrapper = ElasticSearchWrapper()
+                    'suggestions': suggestions
+                }, status=status.HTTP_200_OK)
 
-            suggestions = elastic_search_wrapper.productBySearchField(search_field, query)
-
-            return Response({
-                'suggestions': suggestions
-            }, status = status.HTTP_200_OK)
-            
-
-
+            except ValidationError as ve:
+                return Response(
+                    {"error": f"Validation error: {str(ve)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            except RequestError as re:
+                return Response(
+                    {"error": f"Elasticsearch error: {str(re)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            except Exception as e:
+                return Response(
+                    {"error": f"An unexpected error occurred: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+    
 
 
     

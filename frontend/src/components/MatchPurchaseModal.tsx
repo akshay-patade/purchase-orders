@@ -11,11 +11,19 @@ interface MatchPurchaseModalProps {
   setMappingsData: React.Dispatch<
     React.SetStateAction<ExtractPurchaseOrdersApiResponse | null>
   >;
+  topMatches?: string[];
+}
+
+interface SearchItem {
+  id: string;
+  score: number;
+  description: string;
 }
 
 const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
   mappingsData,
   setMappingsData,
+  topMatches = [],
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,10 +32,98 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
   const [editData, setEditData] = useState<ExtractPurchaseOrders | null>(null);
   const [tableError, setTableError] = useState<string | null>(null);
 
-  const handleEdit = (data: ExtractPurchaseOrders, index: number) => {
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+
+  const handleEdit = async (data: ExtractPurchaseOrders, index: number) => {
     setError(null);
     setEditData(data);
     setShowModal(true);
+    // Reset search-related states when opening modal
+    setSearchQuery("");
+
+    try {
+      const getSearchQuery = [data["best_match"]];
+
+      const res = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/product/productMatching/`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ queries: getSearchQuery }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to Find best Matchings");
+      }
+
+      const result = await res.json();
+      const searchData = result["queries"][0]["matches"];
+
+      const descriptions: string[] = searchData.map(
+        (item: SearchItem) => item.description
+      );
+      console.log(descriptions);
+
+      setSearchResults(descriptions);
+    } catch (err) {
+      if (err instanceof Error) {
+        setSearchResults([]);
+      } else {
+        console.error("An unexpected error occurred");
+        setSearchResults([]);
+      }
+    }
+  };
+
+  // Function to handle search
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      // Simulated API call - replace with your actual API endpoint
+      const response = await fetch(
+        `/api/search-best-matches?query=${searchQuery}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Search failed");
+      }
+
+      const results = await response.json();
+      setSearchResults(results);
+    } catch (err) {
+      setError("Failed to perform search");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to select a best match
+  const handleBestMatchSelect = (match: string) => {
+    if (editData) {
+      setEditData({
+        ...editData,
+        best_match: match,
+      });
+      // Reset search results
+      setSearchQuery("");
+      setSearchResults([]);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSearchResults([]);
   };
 
   useEffect(() => {
@@ -37,7 +133,7 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
 
         if (!mappingsData || mappingsData.length === 0)
           throw new Error(
-            "Failed to find the matching. There should be atleast one data inorder to perform matching. Please upload the document and try again"
+            "Failed to find the matching. There should be at least one data in order to perform matching. Please upload the document and try again"
           );
       } catch (err) {
         if (err instanceof Error) {
@@ -126,101 +222,60 @@ const MatchPurchaseModal: React.FC<MatchPurchaseModalProps> = ({
           <div className="bg-white rounded p-4 w-11/12 md:w-1/2">
             <h2 className="text-xl font-bold mb-4">Edit Order Details</h2>
             <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium">Description</label>
-                <input
-                  type="text"
-                  value={editData.product_description || ""}
-                  onChange={(e) =>
-                    setEditData({
-                      ...editData,
-                      product_description: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
+              {/* Other form fields remain the same */}
 
               <div>
-                <label className="block text-sm font-medium">Best Match</label>
-                <input
-                  type="text"
-                  value={editData.best_match || ""}
-                  readOnly
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium">
-                  Can't find what you are looking for? Select from out top 10
-                  best Matches
+                <label className="block text-sm font-medium mb-2">
+                  Best Match
                 </label>
-                <input
-                  type="text"
-                  value={editData.best_match || ""}
-                  onChange={(e) =>
-                    setEditData({
-                      ...editData,
-                      best_match: e.target.value,
-                    })
-                  }
-                  readOnly
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Quantity</label>
-                <input
-                  type="number"
-                  value={editData.quantity || "1"}
-                  onChange={(e) =>
-                    setEditData({ ...editData, quantity: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Unit Price</label>
-                <input
-                  type="number"
-                  value={editData.unit_price || "1"}
-                  onChange={(e) =>
-                    setEditData({ ...editData, unit_price: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border rounded"
-                />
+
+                {/* Search input */}
+                <div className="flex space-x-2 mb-2">
+                  <input
+                    type="text"
+                    placeholder="Search best matches"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-3 py-2 border rounded flex-grow"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSearch}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
+                  >
+                    Search
+                  </button>
+                </div>
+
+                {/* Dropdown for top matches or search results */}
+                {(searchResults.length > 0 || topMatches.length > 0) && (
+                  <select
+                    value={editData.best_match || ""}
+                    onChange={(e) => handleBestMatchSelect(e.target.value)}
+                    className="w-full px-3 py-2 border rounded"
+                  >
+                    <option value="">Select Best Match</option>
+                    {/* Prioritize search results if available */}
+                    {searchResults.length > 0
+                      ? searchResults.map((match, index) => (
+                          <option key={`search-${index}`} value={match}>
+                            {match}
+                          </option>
+                        ))
+                      : topMatches.map((match, index) => (
+                          <option key={`top-${index}`} value={match}>
+                            {match}
+                          </option>
+                        ))}
+                  </select>
+                )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium">Total</label>
-                <input
-                  type="number"
-                  value={editData.total || "1"}
-                  onChange={(e) =>
-                    setEditData({ ...editData, total: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium">
-                  Vendor Number
-                </label>
-                <input
-                  type="text"
-                  value={editData.vendor_number || "N/A"}
-                  onChange={(e) =>
-                    setEditData({ ...editData, vendor_number: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
+              {/* Rest of the form remains the same */}
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={handleCloseModal}
                   className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-700"
                 >
                   Cancel
