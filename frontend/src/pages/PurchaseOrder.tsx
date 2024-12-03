@@ -8,7 +8,13 @@ const PurchaseOrder: React.FC = () => {
 
   const [isNewPurchaseOrderModal, setNewPurchaseOrderModal] = useState(false);
   const openNewPurchaseOrderModal = () => setNewPurchaseOrderModal(true);
-  const closeNewPurchaseOrderModal = () => setNewPurchaseOrderModal(false);
+  const closeNewPurchaseOrderModal = () => {
+    setNewPurchaseOrderModal(false);
+    setOrderId("");
+    setUploadedAt("");
+    setOrderProcessStatus("");
+    window.location.href = "/";
+  };
 
   const [orderId, setOrderId] = useState<string>("");
   const [uploadedAt, setUploadedAt] = useState<string>(formattedDate);
