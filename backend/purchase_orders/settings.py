@@ -34,7 +34,7 @@ SECRET_KEY = "django-insecure-v9d+)#4xlz5uh^a74(7!xmn$x#k02(%i%uuu5e!v*l6$a_#(c!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
 
 
 # Application definition
@@ -108,11 +108,16 @@ WSGI_APPLICATION = "purchase_orders.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get("POSTGRES_CLOUD_DB_NAME"),
+        'USER': os.environ.get("POSTGRES_CLOUD_USER"),
+        'PASSWORD': os.environ.get("POSTGRES_CLOUD_PASSWORD"),
+        'HOST': os.environ.get("POSTGRES_CLOUD_HOST"),  # Or your database host
+        'PORT': os.environ.get("POSTGRES_CLOUD_PORT"),   # Default PostgreSQL port
     }
 }
+
 
 
 # Password validation
@@ -152,7 +157,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "http://127.0.0.1:3000",  # Add this if you're using 127.0.0.1
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:80",
+    "http://localhost:80",  # Add this if you're using 127.0.0.1
 ]
 
 CORS_ALLOW_METHODS = [
